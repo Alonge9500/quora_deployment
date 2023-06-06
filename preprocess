@@ -1,0 +1,160 @@
+# Import Libraries
+
+import pandas as pd
+import numpy as np
+import re
+import contractions
+from bs4 import BeautifulSoup
+import nltk
+from nltk.tokenize import word_tokenize
+from nltk.stem import WordNetLemmatizer
+from nltk.corpus import stopwords
+import os
+nltk.download('stopwords')
+nltk.download('punkt')
+nltk.download('wordnet')
+nltk.download('averaged_perceptron_tagger')
+
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from fuzzywuzzy import fuzz
+import Levenshtein
+from gensim.models import Word2Vec
+import pickle
+
+
+feature_scaler_path = os.path.join(os.path.dirname(__file__), '..', 'pickles', 'scaler.pkl')
+word2vec_path = os.path.join(os.path.dirname(__file__), '..', 'pickles', 'word2vec_model.pkl')
+
+
+with open(feature_scaler_path,'rb')as f:
+    scaler = pickle.load(f)
+
+
+with open(word2vec_path,'rb')as z:
+    word2vec = pickle.load(z)
+
+def replace_numbers(match):
+    number = match.group(0)
+    if number.endswith('000000000'):
+        return number[:-9] + 'b'
+    elif number.endswith('000000'):
+        return number[:-6] + 'm'
+    elif number.endswith('000'):
+        return number[:-3] + 'k'
+    else:
+        return number
+
+# Define a function that performs preprocessing on the text data
+def preprocess(q):
+    q = q.lower().strip()
+
+    # Replace certain special characters with their string equivalents
+    q = q.replace('%', ' percent')
+    q = q.replace('$', ' dollar ')
+    q = q.replace('₹', ' rupee ')
+    q = q.replace('€', ' euro ')
+    q = q.replace('@', ' at ')
+
+    # The pattern '[math]' appears around 900 times in the whole dataset.
+    q = q.replace('[math]', '')
+
+    # Replacing some numbers with string equivalents
+    q = re.sub(r'\b[0-9]+(000000000|000000|000)\b', replace_numbers, q)
+
+    # Decontracting words
+    q = contractions.fix(q)
+
+    try:
+        # Removing HTML tags
+        q = BeautifulSoup(q, features="html.parser").get_text()
+    except:
+        pass
+        
+    # Remove punctuations
+    pattern = re.compile('\W')
+    q = re.sub(pattern, ' ', q)
+
+    # Tokenization and POS tagging
+    tokens = word_tokenize(q)
+    pos_tags = nltk.pos_tag(tokens)
+
+    # Remove stop words and lemmatization
+    stop_words = set(stopwords.words('english'))
+    lemmatizer = WordNetLemmatizer()   
+
+    tokens = [lemmatizer.lemmatize(word) for word, pos in pos_tags if word not in stop_words]
+
+    return tokens
+
+def jaccard_similarity(tokens_q1, tokens_q2):
+    set1 = set(tokens_q1)
+    set2 = set(tokens_q2)
+    intersection = len(set1.intersection(set2))
+    union = len(set1) + len(set2) - intersection
+        # Check if union is zero
+    if union == 0:
+        similarity = 0  # or None, depending on your preference
+    else:
+        similarity = intersection / union
+    return similarity
+    
+def compute_ngram_similarity(tokens_q1, tokens_q2, n):
+    ngrams_q1 = set(nltk.ngrams(tokens_q1, n))
+    ngrams_q2 = set(nltk.ngrams(tokens_q2, n))
+    if len(ngrams_q1) == 0 and len(ngrams_q2) == 0:
+        return 0
+    common_ngrams = ngrams_q1.intersection(ngrams_q2)
+    similarity = len(common_ngrams) / (len(ngrams_q1) + len(ngrams_q2))
+    return similarity
+    
+
+def token_set_ratio(question1,question2):
+    text1 = set(question1)
+    text2 = set(question2)
+    return fuzz.token_set_ratio(text1,text2)
+
+def token_sort_ratio(question1,question2):
+    text1 = set(question1)
+    text2 = set(question2)
+    return fuzz.token_sort_ratio(text1,text2)
+
+def embedding(tokens):
+    embeddings = [word2vec.wv[word] for word in tokens if word in word2vec.wv]
+    if len(embeddings) > 0:
+        return np.mean(embeddings, axis=0)
+    else:
+        return np.zeros(200)
+
+def feature_preparation(question1, question2):
+    question1tokens = preprocess(question1) if isinstance(question1, str) else ([], [])
+    question2tokens = preprocess(question2) if isinstance(question2, str) else ([], [])
+    
+    tokens_q1_len = len(question1tokens)
+    tokens_q2_len = len(question2tokens)
+    tokens_len_diff = abs(tokens_q1_len - tokens_q2_len)
+    
+    word_overlap = len(set(question1tokens).intersection(question2tokens))
+    
+    bigram_similarity = compute_ngram_similarity(question1tokens, question2tokens, n=2)
+    tri_similarity = compute_ngram_similarity(question1tokens, question2tokens, n=3)
+    
+    jaccard_similarity = jaccard_similarity(question1tokens, question2tokens)
+    levenshtein_distance = levenshtein_distance(question1,question2)
+    
+    fuzzy_ratio = fuzz.ratio(question1, question2)
+    token_set_ratio = token_set_ratio(question1, question2)
+    token_sort_ratio = token_sort_ratio(question1, question2)
+    
+    question1vectors = embedding(question1tokens)
+    question2vectors = embedding(question2tokens)
+
+    scaled_features = scaler.transform(tokens_q1_len,tokens_q2_len,tokens_len_diff,
+                                       word_overlap,bigram_similarity,tri_similarity,
+                                       jaccard_similarity,levenshtein_distance,
+                                       fuzzy_ratio,token_set_ratio,token_sort_ratio)
+    
+    
+    features = question1vectors + question2vectors + scaled_features
+    return features
+    
