@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Churn Customer Prediction</title>
+    <style>
+        /* CSS styles */
+        body {
+            background-color: burlywood;
+        }
+        h2,h5{
+            text-align: center;
+        }
+        .form-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: hsla(204, 56%, 31%, 0.165);
+        }
+
+        .form-container form {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-container label {
+            display: block;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .form-container input[type="text"],
+        .form-container textarea,
+        .form-container select {
+            width: 100%;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 3px;
+        }
+
+        .form-container button {
+            padding: 10px 20px;
+            background-color: #337ab7;
+            color: #fff;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+
+        .form-container button:hover {
+            background-color: #4b7c23;
+        }
+    </style>
+</head>
+<body>
+    <div id="myDiv" class="form-container">
+        <form method = "POST" action="" >
+        {{form.hidden_tag()}}
+        <h2>INPUT CUSTOMER DETAILS</h2><br>
+
+
+        {{ form.question1.label }}
+        {{ form.question1(class="form-control") }}<br>
+
+        {{ form.question2.label }}
+        {{ form.question2(class="form-control") }}<br>
+
+
+        {{ form.submit(class="btn btn-primary") }}
+        </form>
+
+    </div>
+    
+    
+</body>
+</html>

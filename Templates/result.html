@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Result</title>
+    <style>
+        /* CSS styles */
+        body {
+            background-color: burlywood;
+        }
+        .form-container {
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: hsla(204, 56%, 31%, 0.165);
+        }
+
+        a,h5{
+            text-align: center;
+        }
+
+        .form-container form {
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <p>The probability of the customer churning is {{pred[0]}}%</p>
+        <p>The probability of the customer not churning is {{pred[1]}}%</p><br><br>
+
+        <h5>Thank You &#x1F91F;&#x1F91F;</h5>
+
+        <a href="{{url_for('home')}}">Back to Prediction Form</a>
+    </div>
+    
+</body>
+</html>
