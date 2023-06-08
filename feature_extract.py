@@ -8,22 +8,19 @@ from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
 from nltk.corpus import stopwords
 import os
-nltk.download('stopwords')
-nltk.download('punkt')
-nltk.download('wordnet')
-nltk.download('averaged_perceptron_tagger')
-
-from sklearn.model_selection import train_test_split
-from sklearn.feature_extraction.text import TfidfVectorizer
+from nltk import ngrams
+from nltk import FreqDist
 from fuzzywuzzy import fuzz
-import Levenshtein
 from gensim.models import Word2Vec
 import pickle
 import texthero as hero
+from texthero import preprocessing as ppe
+from sklearn.metrics.pairwise import cosine_similarity
 
 
-feature_scaler_path = os.path.join(os.path.dirname(__file__), '..', 'pickles', 'scaler.pkl')
-word2vec_path = os.path.join(os.path.dirname(__file__), '..', 'pickles', 'word2vec_model.pkl')
+
+feature_scaler_path = os.path.join(os.path.dirname(__file__), 'pickles', 'scaler.pkl')
+word2vec_path = os.path.join(os.path.dirname(__file__), 'pickles', 'word2vec_model.pkl')
 
 
 with open(feature_scaler_path,'rb')as f:
@@ -34,9 +31,15 @@ with open(word2vec_path,'rb')as z:
     word2vec = pickle.load(z)
     
 
-import nltk
-nltk.download('punkt')
-from nltk.tokenize import word_tokenize
+def download_all():
+    nltk.download('punkt')
+    nltk.download('stopwords')
+    nltk.download('punkt')
+    nltk.download('wordnet')
+    nltk.download('averaged_perceptron_tagger')
+    nltk.download('stopwords')
+    nltk.download('wordnet')
+
 
 def first_features(question1,question2):
 
@@ -69,28 +72,26 @@ def first_features(question1,question2):
 
     return feature_row
 def clean(question):
-
     custom_pipeline = [
-                    ppe.remove_whitespace,
-                    ppe.remove_punctuation,
-                    ppe.remove_digits,
-                    ppe.fillna,
-                    ppe.remove_whitespace,
-                    ppe.remove_brackets,
-                    ppe.lowercase,
-                    ppe.remove_diacritics,
-                    ]
-    return hero.clean(question,custome_pipeline)
+                   ppe.remove_whitespace,
+                   ppe.remove_punctuation,
+                   ppe.remove_digits,
+                   ppe.fillna,
+                   ppe.remove_whitespace,
+                   ppe.remove_brackets,
+                   ppe.lowercase,
+                   ppe.remove_diacritics,
+                   ]
+    return hero.clean(question,custom_pipeline)
     
 
 def remove_html_tags(text):
-    # Use BeautifulSoup library to remove HTML tags from the text
     soup = BeautifulSoup(text, "html.parser")
     cleaned_text = soup.get_text()
     return cleaned_text
 
 def tokenize_text(text):
-    # Use NLTK's word_tokenize function to tokenize the text
+   
     tokens = word_tokenize(text)
     return tokens
     
@@ -122,10 +123,8 @@ def preprocess_text(text):
     
     return text
     
-nltk.download('stopwords')
-nltk.download('wordnet')
 
-# Function to remove stopwords and perform lemmatization
+
 def text_preprocess(text, flag='lem', remove_stopwords=False):
     if text is None:
         return ''
@@ -179,13 +178,10 @@ def similar_word_count(text1, text2):
 
 
 def fuzzy_word_partial_ratio(text1, text2):
-  return fuzz.patial_ratio(text1, text2)
+  return fuzz.partial_ratio(text1, text2)
 
 def token_set_ratio(text1, text2):
   return fuzz.token_set_ratio(text1, text2)
-
-X_train['token_set_ratio'] = X_train.apply(lambda row: fuzz.token_set_ratio(row['clean_text1'], row['clean_text2']), axis=1)
-X_test['token_set_ratio'] = X_test.apply(lambda row: fuzz.token_set_ratio(row['clean_text1'], row['clean_text2']), axis=1)
 
 def token_sort_ratio(text1, text2):
   return fuzz.token_sort_ratio(text1, text2)
@@ -211,36 +207,99 @@ def jaccard_similarity(text1, text2):
     return jaccard_sim
 
 
-X_train['jaccard_similarity'] = X_train.apply(lambda row: jaccard_similarity(row['clean_text1'], row['clean_text2']), axis=1)
-X_test['jaccard_similarity'] = X_test.apply(lambda row: jaccard_similarity(row['clean_text1'], row['clean_text2']), axis=1)
-
-
 def levenshtein_distance(text1, text2):
     return fuzz.ratio(text1, text2)
 
 
+def length_ratio(text1, text2):
+    length2 = len(text2)
+    if length2 == 0:
+        return 0
+    return len(text1) / length2
+
+
+# Common n-grams
+def common_ngrams(text1, text2, n):
+    ngrams1 = set(ngrams(text1, n))
+    ngrams2 = set(ngrams(text2, n))
+    if len(ngrams2) == 0:
+        return 0
+    return len(ngrams1.intersection(ngrams2)) / len(ngrams2)
+
+def average_word_frequency(text):
+    words = text.split()
+    freq_dist = FreqDist(words)
+    total_frequency = sum(freq_dist.values())
+    return total_frequency / (len(words) +0.001)
+
+def average_word_frequency_diff(text1, text2):
+    freq1 = average_word_frequency(text1)
+    freq2 = average_word_frequency(text2)
+    return freq1 - freq2
+
+def embedding(tokens):
+    embeddings = [word2vec.wv[word] for word in tokens if word in word2vec.wv]
+    if len(embeddings) > 0:
+        return np.mean(embeddings, axis=0)
+    else:
+        return np.zeros(200)
+    
+def cos_similarity(embedding1,embedding2):
+    similarity_score = cosine_similarity([embedding1], [embedding2])[0][0]
+    return similarity_score
+
+
 def final_features(question1,question2):
+    download_all()
     features1 = first_features(question1,question2)
+    quest1df = pd.DataFrame({'text1':[question1]})
+    quest2df = pd.DataFrame({'text2':[question2]})
     
-    clean_tex1 = clean(question1)
-    clean_tex2 = clean(question2)
+    #clean_text1 = clean(quest1df['text1'])[0]
+    #clean_text2 = clean(quest2df['text2'])[0]
     
-    clean_tex1 = preprocess_text(question1)
-    clean_tex2 = preprocess_text(question2)
+    clean_text1 = preprocess_text(question1)
+    clean_text2 = preprocess_text(question2)
     
-    clean_tex1 = text_preprocess(question1)
-    clean_tex2 = text_preprocess(question2)
+    clean_text1 = text_preprocess(question1)
+    clean_text2 = text_preprocess(question2)
     
     word_count1,word_count2 = zip(word_count(clean_text1,clean_text2))
     sentence_count1,sentence_count2 = zip(sentence_count(clean_text1,clean_text2))
     avg_word_length1,avg_word_length2 = zip(avg_word_length(clean_text1,clean_text2))
-    unique_word_count = unique_word_count(clean_text1,clean_text2)
-    similar_word_count = similar_word_count(clean_text1,clean_text2)
-    fuzzy_word_partial_ratio = fuzzy_word_partial_ratio(clean_text1,clean_text2)
-    token_set_ratio = token_set_ratio(clean_text1,clean_text2)
-    token_sort_ratio = token_sort_ratio(clean_text1,clean_text2)
-    word_overlap = word_overlap(clean_text1,clean_text2)
-    levenshtein_distance = levenshtein_distance(clean_text1,clean_text2)
+    unique_word_count_ = unique_word_count(clean_text1,clean_text2)
+    similar_word_count_ = similar_word_count(clean_text1,clean_text2)
+    fuzzy_word_partial_ratio_ = fuzzy_word_partial_ratio(clean_text1,clean_text2)
+    token_set_ratio_ = token_set_ratio(clean_text1,clean_text2)
+    token_sort_ratio_ = token_sort_ratio(clean_text1,clean_text2)
+    word_overlap_ = word_overlap(clean_text1,clean_text2)
+    jaccard_similarity_ = jaccard_similarity(clean_text1,clean_text2)
+    levenshtein_distance_ = levenshtein_distance(clean_text1,clean_text2)
+    length_ratio_ = length_ratio(clean_text1,clean_text2)
+    common_2grams = common_ngrams(clean_text1,clean_text2, 2)
+    common_3grams = common_ngrams(clean_text1,clean_text2, 3)
+    average_word_frequency1 = average_word_frequency(clean_text1)
+    average_word_frequency2 = average_word_frequency(clean_text2)
+    average_word_frequency_diff = abs(average_word_frequency1 - average_word_frequency2)
+    
+    tokens1 = word_tokenize(clean_text1)
+    tokens2 = word_tokenize(clean_text2)
+    embedding1 = embedding(tokens1)
+    embedding2 = embedding(tokens2)
+    
+    cos_similarity_ = cos_similarity(embedding1,embedding2)
+    
+    featuresnumerical = features1.extend([word_count1,word_count2,sentence_count1,sentence_count2,
+                                     avg_word_length1,avg_word_length2,unique_word_count_,
+                                     similar_word_count_,fuzzy_word_partial_ratio_,token_set_ratio_,
+                                     token_sort_ratio_,word_overlap_,jaccard_similarity_,levenshtein_distance_,
+                                     length_ratio,common_2grams,common_3grams,average_word_frequency1,average_word_frequency2,
+                                     average_word_frequency_diff,cos_similarity_])
+    scaled_features = scaler.transform(featuresnumerical)
+    finalfeatures = embedding1 + embedding2 + scaled_features
+    
+    return finalfeatures
+    
     
     
     
