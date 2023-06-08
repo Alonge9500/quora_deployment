@@ -6,14 +6,15 @@ import os
 import numpy as np
 from feature_extract import final_features
 
-model_path = os.path.join(os.path.dirname(__file__), 'pickles', 'model.pkl')
+model_path = os.path.join(os.path.dirname(__file__), 'pickles', 'lgm.pkl')
 
 with open(model_path,'rb')as y:
     model = pickle.load(y)
 
 
 app = Flask(__name__)
-app.secret_key = b'bjdhsybuenngstuwbhdsku'
+app.config['SECRET_KEY'] = b'sysuxulhsluygsygahhjb'
+
 csrf = CSRFProtect(app)
 
 
@@ -25,7 +26,7 @@ def home():
         question1 = form.question1.data
         question2 = form.question2.data
         
-        data = final_features(question1,question2)
+        data = np.array(final_features(question1,question2)).reshape(1,-1)
         
         
         
@@ -33,14 +34,9 @@ def home():
         
         prediction=model.predict(data)[0]
         
-        print(prediction)
-        if prediction == 1:
-            result = 'Questions is Duplicate'
-        elif prediction == 0:
-            result = 'Questions not Duplicate'
-        else:
-            result = prediction
-        return redirect(url_for('result',prediction=result))
+        
+        
+        return redirect(url_for('result',prediction=prediction))
         
     else:
         return render_template('home.html',form=form)

@@ -11,7 +11,7 @@ class PredictForm(FlaskForm):
     question1 = TextAreaField('Question 1', validators=[validators.DataRequired()])
     question2 = TextAreaField('Question 2', validators=[validators.DataRequired()])
     
-    submit = SubmitField('Submit')
+    submit = SubmitField('Check Similarity')
 
 
     

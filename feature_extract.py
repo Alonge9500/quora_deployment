@@ -37,8 +37,6 @@ def download_all():
     nltk.download('punkt')
     nltk.download('wordnet')
     nltk.download('averaged_perceptron_tagger')
-    nltk.download('stopwords')
-    nltk.download('wordnet')
 
 
 def first_features(question1,question2):
@@ -62,27 +60,33 @@ def first_features(question1,question2):
     num_question_marks1 = question1.count('?')
     num_question_marks2 = question2.count('?')
 
-    starts_with_are = question1.lower().startswith('are') or question2.lower().startswith('are')
-    starts_with_can = question1.lower().startswith('can') or question2.lower().startswith('can')
-    starts_with_how = question1.lower().startswith('how') or question2.lower().startswith('how')
+    starts_with_are = int(question1.lower().startswith('are') or question2.lower().startswith('are'))
+    starts_with_can = int(question1.lower().startswith('can') or question2.lower().startswith('can'))
+    starts_with_how = int(question1.lower().startswith('how') or question2.lower().startswith('how'))
 
     feature_row = [percentage_common_tokens, question1_length,
                     question2_length, length_difference, num_capital_letters1, num_capital_letters2,
                     num_question_marks1, num_question_marks2, starts_with_are, starts_with_can, starts_with_how]
 
     return feature_row
-def clean(question):
-    custom_pipeline = [
-                   ppe.remove_whitespace,
-                   ppe.remove_punctuation,
-                   ppe.remove_digits,
-                   ppe.fillna,
-                   ppe.remove_whitespace,
-                   ppe.remove_brackets,
-                   ppe.lowercase,
-                   ppe.remove_diacritics,
-                   ]
-    return hero.clean(question,custom_pipeline)
+def clean(question):    
+    question = str(question).lower()
+    question= question.replace(",000,000", "m")
+    question= question.replace(",000", "k")
+    question= question.replace("′", "'")
+    question= question.replace("’", "'")
+    question= question.replace("won't", "will not").replace("cannot", "can not").replace("can't", "can not")
+    question= question.replace("n't", " not").replace("what's", "what is").replace("it's", "it is")
+    question= question.replace("'ve", " have").replace("i'm", "i am").replace("'re", " are")
+    question= question.replace("he's", "he is").replace("she's", "she is").replace("'s", " own")
+    question= question.replace("%", " percent ").replace("₹", " rupee ").replace("$", " dollar ")
+    question= question.replace("€", " euro ").replace("'ll", " will")
+    question= re.sub(r"([0-9]+)000000", r"\1m", question)
+    question= re.sub(r"([0-9]+)000", r"\1k", question)
+    question= re.sub(r"http\S+", "", question)
+    question= re.sub('\W', ' ', question)
+    
+    return question
     
 
 def remove_html_tags(text):
@@ -125,19 +129,19 @@ def preprocess_text(text):
     
 
 
-def text_preprocess(text, flag='lem', remove_stopwords=False):
+def text_preprocess(text, flag='lem', remove_stopwords=True):
     if text is None:
         return ''
     
     if isinstance(text, list):
         text = ' '.join(text)
     
-    stop_words = set(stopwords.words('english'))
+    stop_wordss = set(stopwords.words('english'))
     lemmatizer = WordNetLemmatizer()
 
     # Remove stopwords if specified
     if remove_stopwords:
-        tokens = [token for token in text.split() if token.lower() not in stop_words]
+        tokens = [token for token in text.split() if token.lower() not in stop_wordss]
     else:
         tokens = text.split()
 
@@ -215,7 +219,7 @@ def length_ratio(text1, text2):
     length2 = len(text2)
     if length2 == 0:
         return 0
-    return len(text1) / length2
+    return (len(text1) / length2)
 
 
 # Common n-grams
@@ -250,23 +254,21 @@ def cos_similarity(embedding1,embedding2):
 
 
 def final_features(question1,question2):
-    download_all()
+    #download_all() #If you are running for the first time in a new venv kindly uncomment this line
     features1 = first_features(question1,question2)
-    quest1df = pd.DataFrame({'text1':[question1]})
-    quest2df = pd.DataFrame({'text2':[question2]})
     
-    #clean_text1 = clean(quest1df['text1'])[0]
-    #clean_text2 = clean(quest2df['text2'])[0]
+    clean_text1 = clean(question1)
+    clean_text2 = clean(question1)
     
-    clean_text1 = preprocess_text(question1)
-    clean_text2 = preprocess_text(question2)
+    clean_text1 = preprocess_text(clean_text1)
+    clean_text2 = preprocess_text(clean_text2)
     
-    clean_text1 = text_preprocess(question1)
-    clean_text2 = text_preprocess(question2)
+    clean_text1 = text_preprocess(clean_text1)
+    clean_text2 = text_preprocess(clean_text2)
     
-    word_count1,word_count2 = zip(word_count(clean_text1,clean_text2))
-    sentence_count1,sentence_count2 = zip(sentence_count(clean_text1,clean_text2))
-    avg_word_length1,avg_word_length2 = zip(avg_word_length(clean_text1,clean_text2))
+    word_count1,word_count2 = word_count(clean_text1,clean_text2)
+    sentence_count1,sentence_count2 = sentence_count(clean_text1,clean_text2)
+    avg_word_length1,avg_word_length2 = avg_word_length(clean_text1,clean_text2)
     unique_word_count_ = unique_word_count(clean_text1,clean_text2)
     similar_word_count_ = similar_word_count(clean_text1,clean_text2)
     fuzzy_word_partial_ratio_ = fuzzy_word_partial_ratio(clean_text1,clean_text2)
@@ -289,14 +291,22 @@ def final_features(question1,question2):
     
     cos_similarity_ = cos_similarity(embedding1,embedding2)
     
-    featuresnumerical = features1.extend([word_count1,word_count2,sentence_count1,sentence_count2,
+    features1.extend([word_count1,word_count2,sentence_count1,sentence_count2,
                                      avg_word_length1,avg_word_length2,unique_word_count_,
                                      similar_word_count_,fuzzy_word_partial_ratio_,token_set_ratio_,
                                      token_sort_ratio_,word_overlap_,jaccard_similarity_,levenshtein_distance_,
-                                     length_ratio,common_2grams,common_3grams,average_word_frequency1,average_word_frequency2,
+                                     length_ratio_,common_2grams,common_3grams,average_word_frequency1,average_word_frequency2,
                                      average_word_frequency_diff,cos_similarity_])
-    scaled_features = scaler.transform(featuresnumerical)
-    finalfeatures = embedding1 + embedding2 + scaled_features
+    
+
+    shape_orig = np.array(features1).shape
+    scaled_features = scaler.transform(np.array(features1).reshape(1,-1))
+    scaled_features = scaled_features.reshape(shape_orig).tolist()
+    
+    finalfeatures = []
+    finalfeatures.extend(embedding1)
+    finalfeatures.extend(embedding2)
+    finalfeatures.extend(scaled_features)
     
     return finalfeatures
     

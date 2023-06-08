@@ -10,16 +10,18 @@
         body {
             background-color: burlywood;
         }
-        h2,h5{
+        h1,h5{
             text-align: center;
         }
         .form-container {
             max-width: 500px;
             margin: 0 auto;
-            padding: 20px;
+            padding: 30px;
             border: 1px solid #ccc;
             border-radius: 5px;
             background-color: hsla(204, 56%, 31%, 0.165);
+            padding-top: 45px;
+            
         }
 
         .form-container form {
@@ -60,7 +62,7 @@
     <div id="myDiv" class="form-container">
         <form method = "POST" action="" >
         {{form.hidden_tag()}}
-        <h2>INPUT QUESTIONS</h2><br>
+        <h1><i>INPUT QUESTIONS</i></h1><br>
 
 
         {{ form.question1.label }}

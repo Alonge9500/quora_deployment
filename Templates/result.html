@@ -12,14 +12,21 @@
         }
         .form-container {
             max-width: 500px;
-            margin: 0 auto;
-            padding: 20px;
+            padding: 40px;
             border: 1px solid #ccc;
             border-radius: 5px;
             background-color: hsla(204, 56%, 31%, 0.165);
+            margin-top: 50px;
+            margin-left: 30%;
+            margin-right: 30%;
+     
         }
 
-        a,h5{
+        a{
+            text-align: left;
+        }
+        
+        h5,h2{
             text-align: center;
         }
 
@@ -31,7 +38,11 @@
 </head>
 <body>
     <div class="form-container">
-        <p>{{pred}}%</p><br><br>
+        {%if pred == '1'%}
+        <h3><i>Question is duplicate kindly check through the quora website to get your desire answers 😔😥😔😥</i></h3>
+        {%elif pred == '0'%}
+        <h3><i>Question is not duplicate you can go ahead and post your question 😊😄😁😁😃</i></h3>
+        {%endif%}
 
         <h5>Thank You &#x1F91F;&#x1F91F;</h5>
 
