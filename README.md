@@ -5,6 +5,10 @@ By *Alonge Daniel*, a Data Scientist passionate about data and technology.
 - LinkedIn: [Alonge Daniel](https://www.linkedin.com/in/alonge-daniel-27b4b4139/)
 - Email: [Alonge Daniel](mailto:alongedaniel19@gmail.com)
 
+## Note
+* This work is a group work and my area of focus are
+* Modelling
+* Deployment(Flask)
 I' will appreciate any comment and correction on this work 
 
 This repository contains code for a Quora question similarity project. The goal of this project is to determine the similarity between pairs of questions asked on Quora. By identifying similar questions, it can help improve user experience by providing relevant answers and reducing duplicate content.
