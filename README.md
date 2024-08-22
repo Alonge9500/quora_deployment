@@ -1,5 +1,5 @@
 # Quora Question Similarity
-By *Alonge Daniel*, a Data Scientist passionate about data and technology.
+By *Alonge Daniel* and Team NIK Avengers on Innomatics Internship 
 
 - GitHub: [Alonge 9500](https://github.com/Alonge9500)
 - LinkedIn: [Alonge Daniel](https://www.linkedin.com/in/alonge-daniel-27b4b4139/)
