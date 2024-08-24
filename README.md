@@ -15,7 +15,7 @@ This repository contains code for a Quora question similarity project. The goal 
 
 ## Problem Statement
 
-Quora is a platform where users can ask questions and get answers from the community. However, many questions asked on Quora are similar or duplicate in nature. The aim of this project is to build a machine learning model that can accurately identify question pairs that are semantically similar. This can be useful in various applications such as question recommendation, duplicate question detection, and information retrieval.
+Quora is a platform where users can ask questions and get answers from the community. However, many questions asked on Quora are similar or duplicate in nature. The aim of this project is to build a machine learning model that can accurately identify question pairs that are semantically similar. This can be useful in various applications such as question recommendation, duplicate question detection, and information retrieval...
 
 ## Data Description
 
